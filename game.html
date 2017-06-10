@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      GAAAAAAMEEEE
+    </title>
+    <stlye>
+    </style>
+  </head>
+  <body id="body">
+    <script>
+      const UP=0;
+      const LEFT=1;
+      const DOWN=2;
+      const RIGHT=3;
+      const ATTACK=4;
+      const W=87;
+      const A=65;
+      const S=83;
+      const D=68;
+      const Q=81;
+      const MOVE=2;
+      const REFRESH_RATE=1000/60;
+      const MOVEMENT_TICK=3;
+      const VISIBLE_H=600;
+      const VISIBLE_W=600;
+      const MAP_WIDTH=4800;
+      const MAP_HEIGHT=4800;
+      const OUT_OF_SIGHT=MAP_HEIGHT+30;
+      var ATTACK_RANGE=30;
+      var keymap={};    // Checks whether a key is being pressed or is released
+      var mapkey_dir={} // Maps KeyCode to Directions
+      var tick={};      // Number of frames for which a key is held
+      var render;       // Holds the setInterval for draw function
+      var c;            // Context for Canvas
+      var obsx=[];      // Obstructions' x values
+      var obsy=[];      // lel
+      var collisionobj={};
+      var background_array=[];
+      var direction_storer=[];
+      var sliced_x,sliced_y;
+      var number_of_obstacles=Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*200*Math.random());
+      var user=new Player(Math.floor(Math.random()*MAP_HEIGHT),Math.floor(Math.random()*MAP_WIDTH));
+      var camera = new Camera();
+      var userImg=new Image();
+      var backgroundImg=new Image();
+      var resourceSheet=new Image();
+      var cuts=[];
+      initialize();
+      function initialize(){
+        //Get the canvas up and running
+        var body=document.getElementById('body');
+        canvas=document.createElement('canvas');
+        c=canvas.getContext('2d');
+        c.canvas.width  = window.innerWidth;
+        c.canvas.height = window.innerHeight;
+        body.append(canvas);
+        //Ticks not used rn
+        mapkey_dir[W]=UP;
+        mapkey_dir[A]=LEFT;
+        mapkey_dir[S]=DOWN;
+        mapkey_dir[D]=RIGHT;
+        tick[UP]=0;
+        tick[LEFT]=0;
+        tick[DOWN]=0;
+        tick[RIGHT]=0;
+        tick[ATTACK]=0;
+        cuts[0]=new Image();
+        cuts[1]=new Image();
+        cuts[2]=new Image();
+        cuts[3]=new Image();
+        cuts[4]=new Image();
+        //Start Drawing
+        render=setInterval(draw,REFRESH_RATE);
+        //Get images from source
+        userImg.src='MainGuySpriteSheet.png'
+        backgroundImg.src="terrain.png";
+        resourceSheet.src="resourcesheet.png"
+        cuts[0].src="cut0.png";
+        cuts[1].src="cut1.png";
+        cuts[2].src="cut2.png";
+        cuts[3].src="cut3.png";
+        cuts[4].src="cut4.png";
+        //Initialize obstacles
+        initializeObstacles();
+        //Initialize background
+        initializeBackground();
+        //Initialize key Inputs
+        window.onkeydown=function(e){
+          keyDownListener(e.keyCode);
+        }
+        window.onkeyup=function(e){
+          keyUpListener(e.keyCode);
+        }
+      }
+
+      function initializeObstacles(){
+        var initialuserpositionx=Math.floor((user.x+12)/30);
+        var initialuserpositiony=Math.floor((user.y+25)/30);
+        collisionobj[initialuserpositionx]={};
+        collisionobj[initialuserpositionx][initialuserpositiony]=true;
+        for(i=0;i<number_of_obstacles;i++){
+          var x=Math.floor(Math.random()*(MAP_HEIGHT/30));
+          var y=Math.floor(Math.random()*(MAP_WIDTH/30));
+
+          if(collisionobj[x]==null)
+          {
+            collisionobj[x]={};
+            i--;
+          }
+          if(collisionobj[x][y]==null){
+            obsx.push(x*30);
+            obsy.push(y*30);
+            collisionobj[x][y]=new Block(x,y);
+            collisionobj[x][y].block_no=obsx.length-1;
+          }
+          else {
+            i--;
+          }
+        }
+        collisionobj[initialuserpositionx][initialuserpositiony]=null;
+      }
+
+      function draw(){
+        c.clearRect(0,0,601,601);
+        camera.getCameraState();
+        drawBackground(c);
+        drawObstacles(c);
+        drawCharacter(c);
+        smoothenTransition();
+      }
+
+      function drawBackground(c){
+        var x=18+6-17;
+        var y=17-3-1;
+        var xupperlimit=user.x+330>MAP_HEIGHT?MAP_HEIGHT:user.x+330;
+        var yupperlimit=user.y+330>MAP_WIDTH?MAP_WIDTH:user.y+330;
+        for(i=Math.floor(user.x-330<0?0:(user.x-330)/30);i<xupperlimit/30;i++)
+          for(j=0;j<MAP_HEIGHT/30;j++){
+            if(Math.abs(user.x-i*30)<=330&&Math.abs(user.y-j*30)<=330)
+              c.drawImage(resourceSheet,32*background_array[i][j].spritesheetx,32*background_array[i][j].spritesheety,32,32,camera.getPositionfromX(i*30),camera.getPositionfromY(j*30),30,30);
+          }
+      }
+
+      function drawObstacles(c){
+        for(i=0;i<obsx.length;i++)  {
+          if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
+          c.drawImage(backgroundImg,64,64+32,30,25,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
+        }
+      }
+
+      function userInput(){
+        if(keymap[W]==true)
+        user.moveUp();
+        if(keymap[A]==true)
+        user.moveLeft();
+        if(keymap[S]==true)
+        user.moveDown();
+        if(keymap[D]==true)
+        user.moveRight();
+        if(keymap[Q]==true)
+        user.attack();
+        else if(tick[ATTACK]!=0)
+          tick[ATTACK]=(tick[ATTACK]+1)%10;
+        if(tick[ATTACK]!=0)
+            drawAttackAnimation();
+      }
+
+      function drawAttackAnimation(){
+
+        c.drawImage(cuts[Math.floor(tick[ATTACK]/2)],0,0,cuts[0].width,cuts[0].height,camera.getPositionfromX(sliced_x)-30,camera.getPositionfromY(sliced_y),60,60);
+      }
+      function drawCharacter(c){
+        // CHANGE IMMEDIATELY
+        userInput();
+        var directionalspriteindex=(user.direction+2)%4;
+        var spriteprogress = (Math.floor(tick[user.direction]/10)%3)*45;
+        c.drawImage(userImg,spriteprogress,directionalspriteindex*36,45,36,camera.getDistortedPositionX(user),camera.getDistortedPositionY(user),30,30);
+      }
+
+      function Player(x,y){
+        this.x=x;
+        this.y=y;
+        this.hp=10;
+        this.setupPlayer=function(newX,newY){
+          this.x=newX;
+          this.y=newY;
+        };
+        this.direction=UP;
+        this.moveUp=function(){
+          if((this.y-MOVE)>getBound(UP)  && !doesCollide(this.x,this.y-MOVE,0))
+            this.y=this.y-MOVE;
+          tick[UP]++;
+        };
+        this.moveLeft=function(){
+          if((this.x-MOVE)>getBound(LEFT)  && !doesCollide(this.x-MOVE,this.y,0))
+            this.x=this.x-MOVE;
+          tick[LEFT]++;
+        };
+        this.moveDown=function(){
+          if((this.y+MOVE)<getBound(DOWN)  && !doesCollide(this.x,this.y+MOVE,0))
+            this.y=this.y+MOVE;
+          tick[DOWN]++;
+        };
+        this.moveRight=function(){
+          if((this.x+MOVE)<getBound(RIGHT)  && !doesCollide(this.x+MOVE,this.y,0))
+            this.x=this.x+MOVE;
+          tick[RIGHT]++;
+        };
+        this.attack=function(){
+          if(tick[ATTACK]==0){
+            switch(user.direction){
+              case UP:  doesCollide(this.x,this.y-ATTACK_RANGE,1);
+                sliced_x=this.x;
+                sliced_y=this.y-30;
+                break;
+              case LEFT:   doesCollide(this.x-ATTACK_RANGE,this.y,1);
+                sliced_x=this.x-30;
+                sliced_y=this.y;
+                break;
+              case DOWN:   doesCollide(this.x,this.y+ATTACK_RANGE,1);
+                sliced_x=this.x;
+                sliced_y=this.y+30;
+                break;
+              case RIGHT:  doesCollide(this.x+ATTACK_RANGE,this.y,1);
+                sliced_x=this.x+30;
+                sliced_y=this.y;
+                break;
+            }
+          }
+          tick[ATTACK]++;
+          tick[ATTACK]%=10;
+        }
+      }
+
+      function smoothenTransition(){
+        c.clearRect(VISIBLE_H,0,VISIBLE_H+30,VISIBLE_W+30);
+        c.clearRect(0,VISIBLE_W,VISIBLE_H+30,VISIBLE_W+30);
+        c.clearRect(VISIBLE_H+30,VISIBLE_W+30,VISIBLE_H+60,VISIBLE_W+60);
+      }
+
+      function Block(x,y){
+        this.x=x;
+        this.y=y;
+        this.block_no;
+        this.hp=10;
+        this.hit=function(){
+          if(this.hp>0)
+            this.hp--;
+        }
+      }
+
+      function doesCollide(x,y,z){
+        var x=Math.floor((x+12)/30);
+        var y=Math.floor((y+25)/30);
+        if(z==1){
+        }
+        if(collisionobj[x]!=null)
+          if(collisionobj[x][y]!=null){
+            if(z==1){
+              collisionobj[x][y].hit();
+              if(collisionobj[x][y].hp==0){
+
+                obsx[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
+                obsy[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
+                collisionobj[x][y]=null;
+              }
+            }
+            return true;
+          }
+        return false;
+      }
+
+      function getBound(dir){
+        //Currently hard coded replace when different layouts are added
+        switch (dir) {
+          case UP: return 0;
+          case LEFT:return 0;
+          case DOWN:return MAP_HEIGHT-30;
+          case RIGHT:return MAP_HEIGHT-25;
+        }
+      }
+
+      function Camera(){
+        this.x=0;
+        this.y=0;
+        this.getDistortedPositionX=function(object){
+          return object.x-this.x;
+        }
+        this.getDistortedPositionY=function(object){
+          return object.y-this.y;
+        }
+        this.getPositionfromX=function(x){
+          return x-this.x;
+        }
+        this.getPositionfromY=function(y){
+          return y-this.y;
+        }
+        this.getCameraState=function(){
+          this.x=user.x-300;
+          this.y=user.y-300;
+        }
+      }
+      function initializeBackground(){
+        for(i=0;i<MAP_HEIGHT/30;i++){
+           background_array[i]=[];
+           for(j=0;j<MAP_WIDTH/30;j++){
+             background_array[i][j]=new Background();
+             background_array[i][j].spritesheetx=7+Math.floor(Math.random()*7);
+             background_array[i][j].spritesheety=13;
+             background_array[i][j].spritesheetsource=resourceSheet;
+           }
+        }
+      }
+      function Background(){
+        this.spritesheetsource;
+        this.spritesheetx;
+        this.spritesheety;
+      }
+      function keyDownListener(code){
+        //map key dir matches appropriate keycode with direction
+        if((keymap[code]==false||keymap[code]==null)&&mapkey_dir[code]<4){
+          direction_storer.push(mapkey_dir[code]);
+          user.direction=mapkey_dir[code];
+        }
+        keymap[code]=true;
+      }
+      function keyUpListener(code){
+        var i;
+        for(i=0;i<direction_storer.length;i++)
+        if(direction_storer[i]==mapkey_dir[code])
+        break;
+        direction_storer.splice(i,1);
+        if(mapkey_dir[code]==user.direction&&direction_storer.length>0){
+          user.direction=direction_storer[0];
+        }
+        keymap[code]=false;
+        tick[code]=0;
+      }
+    </script>
+  </body>
+</html>
