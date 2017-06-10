@@ -39,6 +39,7 @@
       var background_array=[];
       var direction_storer=[];
       var sliced_x,sliced_y;
+      var exit;
       var number_of_obstacles=Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*200*Math.random());
       var user=new Player(Math.floor(Math.random()*MAP_HEIGHT),Math.floor(Math.random()*MAP_WIDTH));
       var camera = new Camera();
@@ -55,7 +56,7 @@
         c.canvas.width  = window.innerWidth;
         c.canvas.height = window.innerHeight;
         body.append(canvas);
-        //Ticks not used rn
+        //Ticks  used rn
         mapkey_dir[W]=UP;
         mapkey_dir[A]=LEFT;
         mapkey_dir[S]=DOWN;
@@ -102,7 +103,6 @@
         for(i=0;i<number_of_obstacles;i++){
           var x=Math.floor(Math.random()*(MAP_HEIGHT/30));
           var y=Math.floor(Math.random()*(MAP_WIDTH/30));
-
           if(collisionobj[x]==null)
           {
             collisionobj[x]={};
@@ -118,6 +118,11 @@
             i--;
           }
         }
+        while(collisionobj[x][y]!=null){
+        var x=Math.floor(Math.random()*(MAP_HEIGHT/30));
+        var y=Math.floor(Math.random()*(MAP_WIDTH/30));
+      }
+        exit=new Block(x,y);
         collisionobj[initialuserpositionx][initialuserpositiony]=null;
       }
 
@@ -145,33 +150,32 @@
       function drawObstacles(c){
         for(i=0;i<obsx.length;i++)  {
           if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
-          c.drawImage(backgroundImg,64,64+32,30,25,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
+            c.drawImage(backgroundImg,64,64+32,30,25,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
+          //c.drawImage(resourceSheet,32,)
         }
       }
 
       function userInput(){
         if(keymap[W]==true)
-        user.moveUp();
+          user.moveUp();
         if(keymap[A]==true)
-        user.moveLeft();
+          user.moveLeft();
         if(keymap[S]==true)
-        user.moveDown();
+          user.moveDown();
         if(keymap[D]==true)
-        user.moveRight();
+          user.moveRight();
         if(keymap[Q]==true)
-        user.attack();
+          user.attack();
         else if(tick[ATTACK]!=0)
           tick[ATTACK]=(tick[ATTACK]+1)%10;
         if(tick[ATTACK]!=0)
-            drawAttackAnimation();
+          drawAttackAnimation();
       }
 
       function drawAttackAnimation(){
-
         c.drawImage(cuts[Math.floor(tick[ATTACK]/2)],0,0,cuts[0].width,cuts[0].height,camera.getPositionfromX(sliced_x)-30,camera.getPositionfromY(sliced_y),60,60);
       }
       function drawCharacter(c){
-        // CHANGE IMMEDIATELY
         userInput();
         var directionalspriteindex=(user.direction+2)%4;
         var spriteprogress = (Math.floor(tick[user.direction]/10)%3)*45;
@@ -328,8 +332,8 @@
       function keyUpListener(code){
         var i;
         for(i=0;i<direction_storer.length;i++)
-        if(direction_storer[i]==mapkey_dir[code])
-        break;
+          if(direction_storer[i]==mapkey_dir[code])
+            break;
         direction_storer.splice(i,1);
         if(mapkey_dir[code]==user.direction&&direction_storer.length>0){
           user.direction=direction_storer[0];
