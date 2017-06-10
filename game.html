@@ -20,12 +20,14 @@
       const D=68;
       const Q=81;
       const MOVE=2;
+      const X_ADJUSTOR=12;
+      const Y_ADJUSTOR=25;
       const REFRESH_RATE=1000/60;
       const MOVEMENT_TICK=3;
       const VISIBLE_H=600;
       const VISIBLE_W=600;
-      const MAP_WIDTH=4800;
-      const MAP_HEIGHT=4800;
+      const MAP_WIDTH=2400;
+      const MAP_HEIGHT=2400;
       const OUT_OF_SIGHT=MAP_HEIGHT+30;
       var ATTACK_RANGE=30;
       var keymap={};    // Checks whether a key is being pressed or is released
@@ -40,8 +42,8 @@
       var direction_storer=[];
       var sliced_x,sliced_y;
       var exit;
-      var number_of_obstacles=Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*200*Math.random());
-      var user=new Player(Math.floor(Math.random()*MAP_HEIGHT),Math.floor(Math.random()*MAP_WIDTH));
+      var number_of_obstacles=(MAP_WIDTH/VISIBLE_W)*(MAP_HEIGHT/VISIBLE_H)*40+Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*100*Math.random());
+      var user=new Player(Math.floor(Math.random()*MAP_WIDTH),Math.floor(Math.random()*MAP_HEIGHT));
       var camera = new Camera();
       var userImg=new Image();
       var backgroundImg=new Image();
@@ -96,13 +98,13 @@
       }
 
       function initializeObstacles(){
-        var initialuserpositionx=Math.floor((user.x+12)/30);
-        var initialuserpositiony=Math.floor((user.y+25)/30);
+        var initialuserpositionx=Math.floor((user.x+X_ADJUSTOR)/30);
+        var initialuserpositiony=Math.floor((user.y+Y_ADJUSTOR)/30);
         collisionobj[initialuserpositionx]={};
         collisionobj[initialuserpositionx][initialuserpositiony]=true;
         for(i=0;i<number_of_obstacles;i++){
-          var x=Math.floor(Math.random()*(MAP_HEIGHT/30));
-          var y=Math.floor(Math.random()*(MAP_WIDTH/30));
+          var x=Math.floor(Math.random()*(MAP_WIDTH/30));
+          var y=Math.floor(Math.random()*(MAP_HEIGHT/30));
           if(collisionobj[x]==null)
           {
             collisionobj[x]={};
@@ -119,10 +121,11 @@
           }
         }
         while(collisionobj[x][y]!=null){
-        var x=Math.floor(Math.random()*(MAP_HEIGHT/30));
-        var y=Math.floor(Math.random()*(MAP_WIDTH/30));
+        var x=Math.floor(Math.random()*(MAP_WIDTH/30));
+        var y=Math.floor(Math.random()*(MAP_HEIGHT/30));
       }
         exit=new Block(x,y);
+        collisionobj[x][y]=exit;
         collisionobj[initialuserpositionx][initialuserpositiony]=null;
       }
 
@@ -136,10 +139,8 @@
       }
 
       function drawBackground(c){
-        var x=18+6-17;
-        var y=17-3-1;
-        var xupperlimit=user.x+330>MAP_HEIGHT?MAP_HEIGHT:user.x+330;
-        var yupperlimit=user.y+330>MAP_WIDTH?MAP_WIDTH:user.y+330;
+        var xupperlimit=user.x+330>MAP_WIDTH?MAP_WIDTH:user.x+330;
+        var yupperlimit=user.y+330>MAP_HEIGHT?MAP_HEIGHT:user.y+330;
         for(i=Math.floor(user.x-330<0?0:(user.x-330)/30);i<xupperlimit/30;i++)
           for(j=0;j<MAP_HEIGHT/30;j++){
             if(Math.abs(user.x-i*30)<=330&&Math.abs(user.y-j*30)<=330)
@@ -150,32 +151,33 @@
       function drawObstacles(c){
         for(i=0;i<obsx.length;i++)  {
           if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
-            c.drawImage(backgroundImg,64,64+32,30,25,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
-          //c.drawImage(resourceSheet,32,)
+          c.drawImage(backgroundImg,64,64+32,32,32,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
+          c.drawImage(resourceSheet,32*24,32*11,32,32,camera.getPositionfromX(exit.x*30),camera.getPositionfromY(exit.y*30),30,30);
         }
       }
 
       function userInput(){
         if(keymap[W]==true)
-          user.moveUp();
+        user.moveUp();
         if(keymap[A]==true)
-          user.moveLeft();
+        user.moveLeft();
         if(keymap[S]==true)
-          user.moveDown();
+        user.moveDown();
         if(keymap[D]==true)
-          user.moveRight();
+        user.moveRight();
         if(keymap[Q]==true)
-          user.attack();
+        user.attack();
         else if(tick[ATTACK]!=0)
           tick[ATTACK]=(tick[ATTACK]+1)%10;
         if(tick[ATTACK]!=0)
-          drawAttackAnimation();
+            drawAttackAnimation();
       }
 
       function drawAttackAnimation(){
         c.drawImage(cuts[Math.floor(tick[ATTACK]/2)],0,0,cuts[0].width,cuts[0].height,camera.getPositionfromX(sliced_x)-30,camera.getPositionfromY(sliced_y),60,60);
       }
       function drawCharacter(c){
+        // CHANGE IMMEDIATELY
         userInput();
         var directionalspriteindex=(user.direction+2)%4;
         var spriteprogress = (Math.floor(tick[user.direction]/10)%3)*45;
@@ -247,7 +249,10 @@
         this.x=x;
         this.y=y;
         this.block_no;
-        this.hp=10;
+        this.spritesheetsource;
+        this.spritesheetx;
+        this.spritesheety;
+        this.hp=50;
         this.hit=function(){
           if(this.hp>0)
             this.hp--;
@@ -261,10 +266,14 @@
         }
         if(collisionobj[x]!=null)
           if(collisionobj[x][y]!=null){
+            if(collisionobj[x][y]==exit){
+              initializeObstacles();
+              initializeBackground();
+              return;
+            }
             if(z==1){
               collisionobj[x][y].hit();
               if(collisionobj[x][y].hp==0){
-
                 obsx[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
                 obsy[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
                 collisionobj[x][y]=null;
@@ -301,8 +310,8 @@
           return y-this.y;
         }
         this.getCameraState=function(){
-          this.x=user.x-300;
-          this.y=user.y-300;
+          this.x=user.x-VISIBLE_W/2;
+          this.y=user.y-VISIBLE_H/2;
         }
       }
       function initializeBackground(){
@@ -332,8 +341,8 @@
       function keyUpListener(code){
         var i;
         for(i=0;i<direction_storer.length;i++)
-          if(direction_storer[i]==mapkey_dir[code])
-            break;
+        if(direction_storer[i]==mapkey_dir[code])
+        break;
         direction_storer.splice(i,1);
         if(mapkey_dir[code]==user.direction&&direction_storer.length>0){
           user.direction=direction_storer[0];
