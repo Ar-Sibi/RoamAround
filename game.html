@@ -14,13 +14,15 @@
       const DOWN=2;
       const RIGHT=3;
       const ATTACK=4;
+      const FIRE=5;
       const W=87;
       const A=65;
       const S=83;
       const D=68;
       const Q=81;
+      const F=70;
       const MOVE=2;
-      const X_ADJUSTOR=12;
+      const X_ADJUSTOR=11;
       const Y_ADJUSTOR=25;
       const REFRESH_RATE=1000/60;
       const MOVEMENT_TICK=3;
@@ -29,9 +31,13 @@
       const MAP_WIDTH=2400;
       const MAP_HEIGHT=2400;
       const OUT_OF_SIGHT=MAP_HEIGHT+30;
+      const USER=1;
+      const ENEMY=2;
+      const ENEMY_MELEE=1;
+      const ENEMY_RANGED=2;
       var ATTACK_RANGE=30;
       var keymap={};    // Checks whether a key is being pressed or is released
-      var mapkey_dir={} // Maps KeyCode to Directions
+      var mapkey_dir={}; // Maps KeyCode to Directions
       var tick={};      // Number of frames for which a key is held
       var render;       // Holds the setInterval for draw function
       var c;            // Context for Canvas
@@ -42,12 +48,15 @@
       var direction_storer=[];
       var sliced_x,sliced_y;
       var exit;
-      var number_of_obstacles=(MAP_WIDTH/VISIBLE_W)*(MAP_HEIGHT/VISIBLE_H)*40+Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*100*Math.random());
+      var bullets=[];
+      var number_of_obstacles=(MAP_WIDTH/VISIBLE_W)*(MAP_HEIGHT/VISIBLE_H)*40+Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*60*Math.random());
       var user=new Player(Math.floor(Math.random()*MAP_WIDTH),Math.floor(Math.random()*MAP_HEIGHT));
       var camera = new Camera();
       var userImg=new Image();
       var backgroundImg=new Image();
       var resourceSheet=new Image();
+      var user_normal_bullet=new Image();
+      var enemy_bullet=new Image();
       var cuts=[];
       initialize();
       function initialize(){
@@ -68,6 +77,7 @@
         tick[DOWN]=0;
         tick[RIGHT]=0;
         tick[ATTACK]=0;
+        tick[FIRE]=0;
         cuts[0]=new Image();
         cuts[1]=new Image();
         cuts[2]=new Image();
@@ -84,6 +94,8 @@
         cuts[2].src="cut2.png";
         cuts[3].src="cut3.png";
         cuts[4].src="cut4.png";
+        user_normal_bullet.src="user_normal.png";
+        enemy_bullet.src="enemy_normal.png";
         //Initialize obstacles
         initializeObstacles();
         //Initialize background
@@ -98,6 +110,9 @@
       }
 
       function initializeObstacles(){
+        obsx=[];
+        obsy=[];
+        collisionobj={};
         var initialuserpositionx=Math.floor((user.x+X_ADJUSTOR)/30);
         var initialuserpositiony=Math.floor((user.y+Y_ADJUSTOR)/30);
         collisionobj[initialuserpositionx]={};
@@ -134,6 +149,7 @@
         camera.getCameraState();
         drawBackground(c);
         drawObstacles(c);
+        drawBullets();
         drawCharacter(c);
         smoothenTransition();
       }
@@ -147,7 +163,6 @@
               c.drawImage(resourceSheet,32*background_array[i][j].spritesheetx,32*background_array[i][j].spritesheety,32,32,camera.getPositionfromX(i*30),camera.getPositionfromY(j*30),30,30);
           }
       }
-
       function drawObstacles(c){
         for(i=0;i<obsx.length;i++)  {
           if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
@@ -165,6 +180,10 @@
         user.moveDown();
         if(keymap[D]==true)
         user.moveRight();
+        if(keymap[F]==true)
+        user.fire();
+        else if(tick[FIRE]!=0)
+          tick[FIRE]=(tick[FIRE]+1)%30;
         if(keymap[Q]==true)
         user.attack();
         else if(tick[ATTACK]!=0)
@@ -193,26 +212,48 @@
           this.y=newY;
         };
         this.direction=UP;
+        this.bulletpicx=0;
+        this.bulletpicy=0;
+        this.bulletsrc=user_normal_bullet;
         this.moveUp=function(){
-          if((this.y-MOVE)>getBound(UP)  && !doesCollide(this.x,this.y-MOVE,0))
+          if((this.y-MOVE)>getBound(UP)  && !doesCollide(this.x+X_ADJUSTOR,this.y-MOVE+Y_ADJUSTOR,0))
             this.y=this.y-MOVE;
           tick[UP]++;
         };
         this.moveLeft=function(){
-          if((this.x-MOVE)>getBound(LEFT)  && !doesCollide(this.x-MOVE,this.y,0))
+          if((this.x-MOVE)>getBound(LEFT)  && !doesCollide(this.x-MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0))
             this.x=this.x-MOVE;
           tick[LEFT]++;
         };
         this.moveDown=function(){
-          if((this.y+MOVE)<getBound(DOWN)  && !doesCollide(this.x,this.y+MOVE,0))
+          if((this.y+MOVE)<getBound(DOWN)  && !doesCollide(this.x+X_ADJUSTOR,this.y+MOVE+Y_ADJUSTOR,0))
             this.y=this.y+MOVE;
           tick[DOWN]++;
         };
         this.moveRight=function(){
-          if((this.x+MOVE)<getBound(RIGHT)  && !doesCollide(this.x+MOVE,this.y,0))
+          if((this.x+MOVE)<getBound(RIGHT)  && !doesCollide(this.x+MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0))
             this.x=this.x+MOVE;
           tick[RIGHT]++;
         };
+        this.fire=function(){
+          if(tick[FIRE]==0){
+            var firedBullet=new Bullet();
+            firedBullet.x=user.x;
+            firedBullet.y=user.y;
+            firedBullet.direction=user.direction;
+            firedBullet.spritesheetsource=user_normal_bullet;
+            firedBullet.spritesheetx=user.bulletpicx;
+            firedBullet.spritesheety=user.bulletpicy;
+            firedBullet.velocity=2;
+            firedBullet.adjustX=15;
+            firedBullet.adjustY=15;
+            firedBullet.dmg=2;
+            firedBullet.firedby=USER;
+            bullets.push(firedBullet);
+          }
+          tick[FIRE]++;
+          tick[FIRE]%=30;
+        }
         this.attack=function(){
           if(tick[ATTACK]==0){
             switch(user.direction){
@@ -252,7 +293,7 @@
         this.spritesheetsource;
         this.spritesheetx;
         this.spritesheety;
-        this.hp=50;
+        this.hp=2;
         this.hit=function(){
           if(this.hp>0)
             this.hp--;
@@ -260,19 +301,19 @@
       }
 
       function doesCollide(x,y,z){
-        var x=Math.floor((x+12)/30);
-        var y=Math.floor((y+25)/30);
-        if(z==1){
+        var x=Math.floor((x)/30);
+        var y=Math.floor((y)/30);
+        if(z!=0){
         }
         if(collisionobj[x]!=null)
           if(collisionobj[x][y]!=null){
-            if(collisionobj[x][y]==exit){
+            if(collisionobj[x][y]==exit&&z==0){
               initializeObstacles();
               initializeBackground();
               return;
             }
-            if(z==1){
-              collisionobj[x][y].hit();
+            if(z!=0&&collisionobj[x][y]!=exit){
+              collisionobj[x][y].hit(z);
               if(collisionobj[x][y].hp==0){
                 obsx[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
                 obsy[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
@@ -294,6 +335,72 @@
         }
       }
 
+      function Bullet(){
+        this.firedby;
+        this.x;
+        this.y;
+        this.direction;
+        this.dmg;
+        this.adjustX=0;
+        this.adjustY=0;
+        this.velocity;
+        this.spritesheet=resourceSheet;
+        this.spritesheetx;
+        this.spritesheety;
+        this.collisionDetect=function(x,y,dmg){
+          switch(this.firedby){
+            case USER:return doesCollide(x,y,dmg);
+          }
+        }
+        this.outofBounds=function(){
+          switch (this.direction) {
+            case UP:if(this.y<getBound(UP))
+              return true;
+              break;
+            case DOWN:if(this.y>getBound(DOWN))
+              return true;
+              break;
+            case LEFT:if(this.x<getBound(LEFT))
+              return true;
+              break;
+            case RIGHT:if(this.x>getBound(RIGHT))
+              return true;
+              break;
+          }
+          return false;
+        }
+        this.move=function(){
+          switch (this.direction) {
+            case UP:this.y=this.y-this.velocity;
+              break;
+            case LEFT:this.x-=this.velocity;
+              break;
+            case DOWN:this.y+=this.velocity;
+              break;
+            case RIGHT:this.x+=this.velocity;
+              break;
+          }
+        }
+      }
+      function drawBullets(){
+        for(i=0;i<bullets.length;i++){
+          console.log(bullets[i].x);
+          if(bullets[i].collisionDetect(bullets[i].x+bullets[i].adjustX,bullets[i].y+bullets[i].adjustY,bullets[i].dmg)||bullets[i].outofBounds()){
+            bullets.splice(i,1);
+          }
+        }
+        for(i=0;i<bullets.length;i++){
+          c.drawImage(bullets[i].spritesheetsource,bullets[i].spritesheetx,bullets[i].spritesheety,32,32,camera.getPositionfromX(bullets[i].x),camera.getPositionfromY(bullets[i].y),30,30);
+          bullets[i].move();
+        }
+
+      }
+      function getBlockX(x){
+        Math.floor(x/30);
+      }
+      function getBlockY(y){
+        Math.floor(y/30);
+      }
       function Camera(){
         this.x=0;
         this.y=0;
