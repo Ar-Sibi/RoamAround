@@ -37,6 +37,8 @@
       const ENEMY_RANGED=2;
       const MODE_PATROL=1;
       const MODE_ENGAGE=2;
+      const TILE_WIDTH=30;
+      const TILE_HEIGHT=30;
       var ATTACK_RANGE=30;
       var enemy_count;
       var keymap={};    // Checks whether a key is being pressed or is released
@@ -102,7 +104,7 @@
         enemy_bullet.src="enemy_normal.png";
         //Initialize obstacles
         initializeObstacles();
-        //
+        //InitializesEnemies
         initializeEnemies();
         //Initialize background
         initializeBackground();
@@ -120,17 +122,17 @@
           var x,y;
           enemy_count=Math.floor(3*MAP_WIDTH*MAP_HEIGHT/(VISIBLE_H*VISIBLE_W));
           for(i=0;i<enemy_count;i++){
-          var enemy=new Enemy();
-          do{
-            x=Math.floor(Math.random()*(MAP_WIDTH-30));
-            y=Math.floor(Math.random()*(MAP_HEIGHT-30));
-          }while(doesCollide(x+enemy.x_adjustor,y+enemy.y_adjustor,0)||doesCollide(x-enemy.x_adjustor,y-enemy.y_adjustor,0))
-          enemy.x=x;
-          enemy.y=y;
-          enemy.initialpositionx=x;
-          enemy.initialpositiony=y;
-          enemies.push(enemy);
-        }
+            var enemy=new Enemy();
+            do{
+              x=Math.floor(Math.random()*(MAP_WIDTH-TILE_WIDTH));
+              y=Math.floor(Math.random()*(MAP_HEIGHT-TILE_HEIGHT));
+            }while(doesCollide(x+enemy.x_adjustor,y+enemy.y_adjustor,0)||doesCollide(x-enemy.x_adjustor,y-enemy.y_adjustor,0))
+            enemy.x=x;
+            enemy.y=y;
+            enemy.initialpositionx=x;
+            enemy.initialpositiony=y;
+            enemies.push(enemy);
+          }
       }
 
 
@@ -138,21 +140,21 @@
         obsx=[];
         obsy=[];
         collisionobj={};
-        var initialuserpositionx=Math.floor((user.x+X_ADJUSTOR)/30);
-        var initialuserpositiony=Math.floor((user.y+Y_ADJUSTOR)/30);
+        var initialuserpositionx=Math.floor((user.x+X_ADJUSTOR)/TILE_WIDTH);
+        var initialuserpositiony=Math.floor((user.y+Y_ADJUSTOR)/TILE_HEIGHT);
         collisionobj[initialuserpositionx]={};
         collisionobj[initialuserpositionx][initialuserpositiony]=true;
         for(i=0;i<number_of_obstacles;i++){
-          var x=Math.floor(Math.random()*(MAP_WIDTH/30));
-          var y=Math.floor(Math.random()*(MAP_HEIGHT/30));
+          var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
+          var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
           if(collisionobj[x]==null)
           {
             collisionobj[x]={};
             i--;
           }
           if(collisionobj[x][y]==null){
-            obsx.push(x*30);
-            obsy.push(y*30);
+            obsx.push(x*TILE_WIDTH);
+            obsy.push(y*TILE_HEIGHT);
             collisionobj[x][y]=new Block(x,y);
             collisionobj[x][y].block_no=obsx.length-1;
           }
@@ -161,8 +163,8 @@
           }
         }
         while(collisionobj[x][y]!=null){
-        var x=Math.floor(Math.random()*(MAP_WIDTH/30));
-        var y=Math.floor(Math.random()*(MAP_HEIGHT/30));
+        var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
+        var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
       }
         exit=new Block(x,y);
         collisionobj[x][y]=exit;
@@ -186,9 +188,9 @@
       function drawBackground(c){
         var xupperlimit=user.x+330>MAP_WIDTH?MAP_WIDTH:user.x+330;
         var yupperlimit=user.y+330>MAP_HEIGHT?MAP_HEIGHT:user.y+330;
-        for(i=Math.floor(user.x-330<0?0:(user.x-330)/30);i<xupperlimit/30;i++)
+        for(i=Math.floor(user.x-330<0?0:(user.x-330)/TILE_HEIGHT);i<xupperlimit/30;i++)
           for(j=0;j<MAP_HEIGHT/30;j++){
-            if(Math.abs(user.x-i*30)<=330&&Math.abs(user.y-j*30)<=330)
+            if(Math.abs(user.x-i*TILE_WIDTH)<=330&&Math.abs(user.y-j*TILE_HEIGHT)<=330)
               c.drawImage(resourceSheet,32*background_array[i][j].spritesheetx,32*background_array[i][j].spritesheety,32,32,camera.getPositionfromX(i*30),camera.getPositionfromY(j*30),30,30);
           }
       }
@@ -197,9 +199,10 @@
       function drawObstacles(c){
         for(i=0;i<obsx.length;i++)  {
           if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
-          c.drawImage(backgroundImg,64,64+32,32,32,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),30,30);
-          c.drawImage(resourceSheet,32*24,32*11,32,32,camera.getPositionfromX(exit.x*30),camera.getPositionfromY(exit.y*30),30,30);
+            c.drawImage(backgroundImg,64,64+32,32,32,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),TILE_WIDTH,TILE_HEIGHT);
         }
+          if(Math.abs(user.x-exit.x)<=330&&Math.abs(user.y-exit.y)<=330)
+            c.drawImage(resourceSheet,32*24,32*11,32,32,camera.getPositionfromX(exit.x*TILE_WIDTH),camera.getPositionfromY(exit.y*TILE_HEIGHT),TILE_WIDTH,TILE_HEIGHT);
       }
 
 
@@ -231,7 +234,6 @@
 
 
       function drawCharacter(c){
-        // CHANGE IMMEDIATELY
         userInput();
         var directionalspriteindex=(user.direction+2)%4;
         var spriteprogress = (Math.floor(tick[user.direction]/10)%3)*45;
@@ -327,13 +329,14 @@
           tick[ATTACK]++;
           tick[ATTACK]%=10;
         }
+
       }
 
 
       function smoothenTransition(){
-        c.clearRect(VISIBLE_H,0,VISIBLE_H+30,VISIBLE_W+30);
-        c.clearRect(0,VISIBLE_W,VISIBLE_H+30,VISIBLE_W+30);
-        c.clearRect(VISIBLE_H+30,VISIBLE_W+30,VISIBLE_H+60,VISIBLE_W+60);
+        c.clearRect(VISIBLE_H,0,VISIBLE_H+TILE_HEIGHT,VISIBLE_W+TILE_HEIGHT);
+        c.clearRect(0,VISIBLE_W,VISIBLE_H+TILE_HEIGHT,VISIBLE_W+TILE_WIDTH);
+        c.clearRect(VISIBLE_H+TILE_HEIGHT,VISIBLE_W+TILE_WIDTH,VISIBLE_H+60,VISIBLE_W+60);
       }
 
 
@@ -356,12 +359,11 @@
       function doesCollide(x,y,z){
         var x=Math.floor((x)/30);
         var y=Math.floor((y)/30);
-
+        //Collision With Blocks
         if(collisionobj[x]!=null)
           if(collisionobj[x][y]!=null){
             if(collisionobj[x][y]==exit&&z==0){
-              initializeObstacles();
-              initializeBackground();
+              exitHit();
               return;
             }
             if(z!=0&&collisionobj[x][y]!=exit){
@@ -372,9 +374,9 @@
                 collisionobj[x][y]=null;
               }
             }
-
             return true;
           }
+          //Collision with enemies
           if(z!=0)
           for(i=0;i<enemies.length;i++)
             if(getBlock(enemies[i].x+enemies[i].x_adjustor)==x&&getBlock(enemies[i].y+enemies[i].y_adjustor)==y){
@@ -383,6 +385,14 @@
             }
         return false;
       }
+
+
+      function exitHit(){
+        initializeObstacles();
+        initializeBackground();
+        initializeEnemies();
+      }
+
 
       function getBound(dir){
         //Currently hard coded replace when different layouts are added
@@ -394,6 +404,7 @@
         }
       }
 
+
       function Bullet(){
         this.firedby;
         this.x;
@@ -403,6 +414,7 @@
         this.x_adjustor=0;
         this.y_adjustor=0;
         this.velocity;
+        this.maxfiretick=30;
         this.spritesheet=resourceSheet;
         this.spritesheetx;
         this.spritesheety;
@@ -420,7 +432,7 @@
           else
             return false;
           return true;
-          }
+        }
 
         this.outofBounds=function(){
           switch (this.direction) {
@@ -452,6 +464,7 @@
               break;
           }
         }
+
       }
 
 
@@ -461,6 +474,7 @@
             bullets.splice(iter,1);
           }
         }
+
         for(i=0;i<bullets.length;i++){
           c.drawImage(bullets[i].spritesheetsource,bullets[i].spritesheetx,bullets[i].spritesheety,32,32,camera.getPositionfromX(bullets[i].x),camera.getPositionfromY(bullets[i].y),30,30);
           bullets[i].move();
@@ -538,11 +552,6 @@
         this.patrolrange=100;
         this.firetick=0;
         this.mode=MODE_PATROL;
-
-        this.setupPlayer=function(newX,newY){
-          this.x=newX;
-          this.y=newY;
-        };
         this.direction=Math.floor(Math.random()*4);
         this.bulletpicx=0;
         this.bulletpicy=0;
@@ -561,38 +570,46 @@
                 break;
           }
           else{
-            if(this.x+this.x_adjustor-(user.x+X_ADJUSTOR)>10)
-              this.moveLeft();
-            if(this.y+this.y_adjustor-(user.y+Y_ADJUSTOR)>10)
-              this.moveUp();
-            if((user.x+X_ADJUSTOR)-(this.x+this.x_adjustor)>10)
-              this.moveRight();
-            if(user.y+Y_ADJUSTOR-(this.y+this.y_adjustor)>10)
-              this.moveDown();
-            if(Math.abs(user.y+Y_ADJUSTOR-(this.y+this.y_adjustor))<=10){
-              if(user.x+X_ADJUSTOR>=this.x+this.x_adjustor)
-                this.direction=RIGHT;
-              else
-                this.direction=LEFT;
-                this.fire();
-            }
-            if(Math.abs(user.x+X_ADJUSTOR-(this.x+this.x_adjustor))<=10){
-              if(user.y+Y_ADJUSTOR>this.y+this.y_adjustor)
-                this.direction=DOWN;
-              else
-                this.direction=UP;
-              this.fire();
-            }
+            this.patrolModeMotion();
           }
+          this.modeCheck();
+        }
+
+        this.modeCheck=function(){
           if((Math.abs(this.x-user.x)+Math.abs(this.y-user.y))<200&&user.alive==true){
             this.mode=MODE_ENGAGE;
           }
           else
-              this.mode=MODE_PATROL;
+            this.mode=MODE_PATROL;
         }
 
         this.hit=function (dmg) {
           this.hp-=dmg;
+        }
+
+        this.patrolModeMotion=function(){
+          if(this.x+this.x_adjustor-(user.x+X_ADJUSTOR)>10)
+            this.moveLeft();
+          if(this.y+this.y_adjustor-(user.y+Y_ADJUSTOR)>10)
+            this.moveUp();
+          if((user.x+X_ADJUSTOR)-(this.x+this.x_adjustor)>10)
+            this.moveRight();
+          if(user.y+Y_ADJUSTOR-(this.y+this.y_adjustor)>10)
+            this.moveDown();
+          if(Math.abs(user.y+Y_ADJUSTOR-(this.y+this.y_adjustor))<=10){
+            if(user.x+X_ADJUSTOR>=this.x+this.x_adjustor)
+              this.direction=RIGHT;
+            else
+              this.direction=LEFT;
+              this.fire();
+          }
+          if(Math.abs(user.x+X_ADJUSTOR-(this.x+this.x_adjustor))<=10){
+            if(user.y+Y_ADJUSTOR>this.y+this.y_adjustor)
+              this.direction=DOWN;
+            else
+              this.direction=UP;
+            this.fire();
+          }
         }
 
         this.moveUp=function(){
@@ -624,6 +641,7 @@
         };
 
         this.fire=function(){
+          //Fires bullets after 60 attempts to fire
           if(this.firetick==0){
             var firedBullet=new Bullet();
             firedBullet.x=this.x;
@@ -644,32 +662,32 @@
         }
 
         this.attack=function(){
+          //Hasnt been implemented in gameplay and possibly wont be to keep the difficulty fair
           if(meleetick==0){
             switch(this.direction){
-              case UP:  doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y-ATTACK_RANGE,1);
-                doesCollide(this.x+X_ADJUSTOR-30,Y_ADJUSTOR+this.y-ATTACK_RANGE,1);
-                doesCollide(this.x+X_ADJUSTOR+30,Y_ADJUSTOR+this.y-ATTACK_RANGE,1);
+              case UP:
+                doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y-ATTACK_RANGE,5);
                 this.sliced_x=this.x;
                 this.sliced_y=this.y-30;
                 break;
-              case LEFT:   doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y,1);
-                doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y-30,1);
-                doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y+30,1);
+
+              case LEFT:
+                doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y,5);
                 this.sliced_x=this.x-30;
                 this.sliced_y=this.y;
                 break;
-              case DOWN:   doesCollide(X_ADJUSTOR+this.x,Y_ADJUSTOR+this.y+ATTACK_RANGE,1);
-                doesCollide(X_ADJUSTOR+this.x+30,Y_ADJUSTOR+this.y+ATTACK_RANGE,1);
-                doesCollide(X_ADJUSTOR+this.x-30,Y_ADJUSTOR+this.y+ATTACK_RANGE,1);
+
+              case DOWN:
+                doesCollide(X_ADJUSTOR+this.x,Y_ADJUSTOR+this.y+ATTACK_RANGE,5);
                 this.sliced_x=this.x;
                 this.sliced_y=this.y+30;
                 break;
-              case RIGHT:  doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y,1);
-                doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y-30,1);
-                doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y+30,1);
+
+              case RIGHT:  doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y,5);
                 this.sliced_x=this.x+30;
                 this.sliced_y=this.y;
                 break;
+
             }
           }
           this.meleetick++;
@@ -679,13 +697,15 @@
 
 
       function drawEnemies(){
+        var i;
+        //Draws Enemies after checking if they need to be drawn
         for(i=0;i<enemies.length;i++)
           if(enemies[i].hp<=0)
             enemies.splice(i,1);
         for(i=0;i<enemies.length;i++){
+          if(Math.abs(user.x-enemies[i].x)<330&&Math.abs(user.y-enemies[i].y)<330)
           c.drawImage(enemies[i].spritesheetsource,32*enemies[i].spritesheetx,32*enemies[i].spritesheety,32,32,camera.getPositionfromX(enemies[i].x),camera.getPositionfromY(enemies[i].y),30,30);
           enemies[i].move();
-
         }
       }
 
