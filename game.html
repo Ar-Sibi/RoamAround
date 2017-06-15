@@ -120,6 +120,7 @@
 
       function initializeEnemies(){
           var x,y;
+          enemies=[];
           enemy_count=Math.floor(3*MAP_WIDTH*MAP_HEIGHT/(VISIBLE_H*VISIBLE_W));
           for(i=0;i<enemy_count;i++){
             var enemy=new Enemy();
@@ -201,7 +202,7 @@
           if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
             c.drawImage(backgroundImg,64,64+32,32,32,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),TILE_WIDTH,TILE_HEIGHT);
         }
-          if(Math.abs(user.x-exit.x)<=330&&Math.abs(user.y-exit.y)<=330)
+          if(Math.abs(user.x-exit.x*30)<=330&&Math.abs(user.y-exit.y*30)<=330)
             c.drawImage(resourceSheet,32*24,32*11,32,32,camera.getPositionfromX(exit.x*TILE_WIDTH),camera.getPositionfromY(exit.y*TILE_HEIGHT),TILE_WIDTH,TILE_HEIGHT);
       }
 
