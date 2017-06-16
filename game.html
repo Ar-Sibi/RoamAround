@@ -44,6 +44,7 @@
       const ROOM=1;
       const CORRIDOR=2;
       const CORRIDOR_WIDTH=4;
+      const COIN=1;
       var WIDTH=MAP_HEIGHT/VISIBLE_H;
       var rooms=[];
       var corridors=[];
@@ -54,8 +55,15 @@
       var tick={};      // Number of frames for which a key is held
       var render;       // Holds the setInterval for draw function
       var c;            // Context for Canvas
-      var obsx=[];      // Obstructions' x values
-      var obsy=[];      // lel
+      var obs=[];      // Obstructions' x values
+      var obstacle_block;
+      var chest_block;
+      var coins_block;
+      var lava_background;
+      var grass_background;
+      var sand_background;
+      var deep_sea_background;
+      var map_types=[];
       var collisionobj={};
       var background_array=[];
       var direction_storer=[];
@@ -66,11 +74,14 @@
       var number_of_obstacles=(MAP_WIDTH/VISIBLE_W)*(MAP_HEIGHT/VISIBLE_H)*4+Math.floor((MAP_HEIGHT/VISIBLE_H)*(MAP_WIDTH/VISIBLE_H)*6*Math.random());
       var user=new Player(Math.floor(Math.random()*MAP_WIDTH),Math.floor(Math.random()*MAP_HEIGHT));
       var camera = new Camera();
+      var gold_pile_img=new Image();
       var userImg=new Image();
       var backgroundImg=new Image();
       var resourceSheet=new Image();
       var user_normal_bullet=new Image();
       var enemy_bullet=new Image();
+      var chest_image=new Image();
+      var map_type;
       var cuts=[];
       initialize();
       function initialize(){
@@ -111,8 +122,22 @@
         cuts[2].src="cut2.png";
         cuts[3].src="cut3.png";
         cuts[4].src="cut4.png";
+        chest_image.src="chest2.png";
         user_normal_bullet.src="user_normal.png";
         enemy_bullet.src="enemy_normal.png";
+        gold_pile_img.src="gold_pile.png"
+        obstacle_block=new BlockType(backgroundImg,2,3,1,50);
+        chest_block=new BlockType(chest_image,0,0,50,1);
+        coins_block=new BlockType(gold_pile_img,0,0,50,1);
+        moon_background=new TileType(resourceSheet,53,6,13);
+        map_types.push(moon_background);
+        lava_background=new TileType(resourceSheet,7,7,13);
+        map_types.push(lava_background);
+        sand_background=new TileType(resourceSheet,14,7,13);
+        map_types.push(sand_background);
+        grass_background=new TileType(resourceSheet,0,7,13);
+        map_types.push(grass_background);
+        initializeMapType();
         //Initialize obstacles
         createRooms();
         initializeObstacles();
@@ -130,6 +155,12 @@
         drawMap();
       }
 
+
+      function initializeMapType(){
+        var pos=Math.floor(Math.random()*map_types.length);
+        map_type=map_types[pos];
+        map_types.splice(pos,1);
+      }
 
       function initializeEnemies(){
           var x,y;
@@ -155,19 +186,13 @@
 
 
       function initializeObstacles(){
-        obsx=[];
-        obsy=[];
+        obs=[];
         collisionobj={};
         for(var i=0;i<MAP_WIDTH;i++){
           collisionobj[i]={};
           for(var j=0;j<MAP_WIDTH;j++)
             collisionobj[i][j]=null;
         }
-
-        var initialuserpositionx=Math.floor((user.x+X_ADJUSTOR)/TILE_WIDTH);
-        var initialuserpositiony=Math.floor((user.y+Y_ADJUSTOR)/TILE_HEIGHT);
-        collisionobj[initialuserpositionx]={};
-        collisionobj[initialuserpositionx][initialuserpositiony]=true;
         for(i=0;i<WIDTH;i++){
           for(j=0;j<WIDTH;j++){
             if(tiles[i][j]!=null){
@@ -195,10 +220,14 @@
             i--;
           }
           if(collisionobj[x][y]==null){
-            obsx.push(x*TILE_WIDTH);
-            obsy.push(y*TILE_HEIGHT);
             collisionobj[x][y]=new Block(x,y);
-            collisionobj[x][y].block_no=obsx.length-1;
+            collisionobj[x][y].block_no=obs.length;
+            if(Math.random()*100>=10)
+              collisionobj[x][y].setBlocktype(obstacle_block);
+            else
+              collisionobj[x][y].setBlocktype(chest_block);
+            obs.push(collisionobj[x][y]);
+
           }
           else {
             i--;
@@ -220,7 +249,17 @@
           }
         exit=new Block(x,y);
         collisionobj[x][y]=exit;
-        collisionobj[initialuserpositionx][initialuserpositiony]=null;
+        while(collisionobj[x][y]!=null||isroom){
+          isroom=true;
+          var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
+          var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
+          if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)]!=null){
+            if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)].type==ROOM)
+              isroom=false;
+          }
+        }
+        user.x=x*30;
+        user.y=y*30;
         console.log(exit.x*30+"    "+exit.y*30);
       }
 
@@ -255,8 +294,27 @@
         drawCharacter(c);
         smoothenTransition();
         drawMap();
+        drawBars();
       }
 
+
+      function drawBars(){
+        drawHealthBar();
+        c.fillStyle="#00FF00"
+        c.font="30px Verdana";
+        c.fillText(user.score,500,30);
+      }
+
+
+      function drawHealthBar(){
+        c.save();
+        c.beginPath();
+        c.fillStyle="#FF0000";
+        c.fillRect(30,VISIBLE_H+30,50*10,20);
+        c.fillStyle="#00FF00";
+        c.fillRect(30,VISIBLE_H+30,user.hp*10,20);
+        //c.restore();
+      }
 
       function drawBackground(c){
         var xupperlimit=user.x+330>MAP_WIDTH?MAP_WIDTH:user.x+330;
@@ -273,12 +331,28 @@
 
 
       function drawObstacles(c){
-        for(i=0;i<obsx.length;i++)  {
-          if(Math.abs(user.x-obsx[i])<=330&&Math.abs(user.y-obsy[i])<=330&&obsx[i]!=OUT_OF_SIGHT)
-            c.drawImage(backgroundImg,64,64+32,32,32,camera.getPositionfromX(obsx[i]),camera.getPositionfromY(obsy[i]),TILE_WIDTH,TILE_HEIGHT);
+        for(i=0;i<obs.length;i++)  {
+          if(Math.abs(user.x-obs[i].x*30)<=330&&Math.abs(user.y-obs[i].y*30)<=330&&obs[i].x*30!=OUT_OF_SIGHT)
+            c.drawImage(obs[i].spritesheetsource,32*obs[i].spritesheetx,32*obs[i].spritesheety,32,32,camera.getPositionfromX(obs[i].x*30),camera.getPositionfromY(obs[i].y*30),TILE_WIDTH,TILE_HEIGHT);
         }
           if(Math.abs(user.x-exit.x*30)<=330&&Math.abs(user.y-exit.y*30)<=330)
             c.drawImage(resourceSheet,32*24,32*11,32,32,camera.getPositionfromX(exit.x*TILE_WIDTH),camera.getPositionfromY(exit.y*TILE_HEIGHT),TILE_WIDTH,TILE_HEIGHT);
+      }
+
+      function BlockType(spritesheetsource,spritesheetx,spritesheety,score,hp){
+        this.spritesheetsource=spritesheetsource;
+        this.spritesheetx=spritesheetx;
+        this.spritesheety=spritesheety;
+        this.score=score;
+        this.hp=hp;
+      }
+
+
+      function TileType(spritesheetsource,spritesheetxstart,spriterange,spritesheety){
+        this.spritesheetsource=spritesheetsource;
+        this.spritesheetxstart=spritesheetxstart;
+        this.spriterange=spriterange;
+        this.spritesheety=spritesheety;
       }
 
 
@@ -311,6 +385,7 @@
 
       function drawCharacter(c){
         userInput();
+        tiles[Math.floor(user.x/VISIBLE_H)][Math.floor(user.y/VISIBLE_H)].isVisited=true;
         var directionalspriteindex=(user.direction+2)%4;
         var spriteprogress = (Math.floor(tick[user.direction]/10)%3)*45;
         c.drawImage(userImg,spriteprogress,directionalspriteindex*36,45,36,camera.getDistortedPositionX(user),camera.getDistortedPositionY(user),30,30);
@@ -329,6 +404,7 @@
         this.direction=UP;
         this.bulletpicx=0;
         this.bulletpicy=0;
+        this.score=0;
         this.bulletsrc=user_normal_bullet;
         this.hit=function(dmg){
           this.hp-=dmg;
@@ -423,11 +499,19 @@
         this.spritesheetsource;
         this.spritesheetx;
         this.spritesheety;
+        this.score;
         this.hp=50;
         this.hit=function(dmg){
             this.hp-=dmg;
             if(this.hp<=0)
             this.hp=0;
+        }
+        this.setBlocktype=function(blocktype){
+          this.spritesheetsource=blocktype.spritesheetsource;
+          this.spritesheetx=blocktype.spritesheetx;
+          this.spritesheety=blocktype.spritesheety;
+          this.hp=blocktype.hp;
+          this.score=blocktype.score;
         }
       }
 
@@ -445,9 +529,11 @@
             if(z!=0&&collisionobj[x][y]!=exit){
               collisionobj[x][y].hit(z);
               if(collisionobj[x][y].hp==0){
-                obsx[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
-                obsy[collisionobj[x][y].block_no]=OUT_OF_SIGHT;
+                obs[collisionobj[x][y].block_no].x=OUT_OF_SIGHT/30;
+                user.score+=collisionobj[x][y].score;
+                console.log(user.score);
                 collisionobj[x][y]=null;
+
               }
             }
             return true;
@@ -464,11 +550,17 @@
 
 
       function exitHit(){
-        createRooms();
-        initializeObstacles();
-        initializeBackground();
-        initializeEnemies();
+        if(map_types.length!=0){
+          initializeMapType();
+          createRooms();
+          initializeObstacles();
+          initializeBackground();
+          initializeEnemies();
+        }
+        else
+          clearInterval(render);
       }
+
 
 
       function getBound(dir){
@@ -598,9 +690,7 @@
            background_array[i]=[];
            for(j=0;j<MAP_WIDTH/30;j++){
              background_array[i][j]=new Background();
-             background_array[i][j].spritesheetx=7+Math.floor(Math.random()*7);
-             background_array[i][j].spritesheety=13;
-             background_array[i][j].spritesheetsource=resourceSheet;
+             background_array[i][j].setType(map_type);
            }
         }
       }
@@ -608,8 +698,17 @@
 
       function Background(){
         this.spritesheetsource;
+        this.spritesheetxstart;
         this.spritesheetx;
+        this.spriterange;
         this.spritesheety;
+        this.setType=function(tile_type){
+          this.spritesheetsource=tile_type.spritesheetsource;
+          this.spritesheetxstart=tile_type.spritesheetxstart;
+          this.spritesheety=tile_type.spritesheety;
+          this.spriterange=tile_type.spriterange;
+          this.spritesheetx=tile_type.spritesheetxstart+Math.floor(Math.random()*this.spriterange);
+        }
       }
 
 
@@ -624,7 +723,7 @@
         this.meleetick=1;
         this.x=x;
         this.y=y;
-        this.hp=10;
+        this.hp=8;
         this.velocity=1.2;
         this.x_adjustor=15;
         this.y_adjustor=15;
@@ -808,8 +907,10 @@
         var i;
         //Draws Enemies after checking if they need to be drawn
         for(i=0;i<enemies.length;i++)
-          if(enemies[i].hp<=0)
+          if(enemies[i].hp<=0){
+            createBlock(getBlock(enemies[i].x+enemies[i].x_adjustor),getBlock(enemies[i].y+enemies[i].y_adjustor),COIN);
             enemies.splice(i,1);
+            }
         for(i=0;i<enemies.length;i++){
           if(Math.abs(user.x-enemies[i].x)<330&&Math.abs(user.y-enemies[i].y)<330)
           c.drawImage(enemies[i].spritesheetsource,32*enemies[i].spritesheetx,32*enemies[i].spritesheety,32,32,camera.getPositionfromX(enemies[i].x),camera.getPositionfromY(enemies[i].y),30,30);
@@ -826,6 +927,7 @@
       this.hasright=false;
       this.hasdown=false;
       this.hasup=false;
+      this.isVisited=false;
       this.isupconnected=false;
       this.isdownconnected=false;
       this.isleftconnected=false;
@@ -859,23 +961,25 @@
         for(i=0;i<WIDTH;i++){
           for(j=0;j<WIDTH;j++){
             if(tiles[i][j]!=null){
-              if(tiles[i][j].type==ROOM){
+              if(tiles[i][j].isVisited==true){
+                if(tiles[i][j].type==ROOM){
+                  c.beginPath();
+                  c.strokeStyle="#FF0000"
+                  c.rect(660+i*30,j*30,30,30);
+                  c.stroke();
+                  c.strokeStyle="#000000"
+                }
                 c.beginPath();
-                c.strokeStyle="#FF0000"
-                c.rect(660+i*30,j*30,30,30);
+                if(tiles[i][j].hasleft)
+                  c.rect(660+i*30,0+j*30+10,15,10);
+                if(tiles[i][j].hasright)
+                  c.rect(660+i*30+15,0+j*30+10,15,10);
+                if(tiles[i][j].hasup)
+                  c.rect(660+i*30+10,j*30,10,15);
+                if(tiles[i][j].hasdown)
+                  c.rect(660+i*30+10,j*30+15,10,15);
                 c.stroke();
-                c.strokeStyle="#000000"
               }
-              c.beginPath();
-              if(tiles[i][j].hasleft)
-                c.rect(660+i*30,0+j*30+10,15,10);
-              if(tiles[i][j].hasright)
-                c.rect(660+i*30+15,0+j*30+10,15,10);
-              if(tiles[i][j].hasup)
-                c.rect(660+i*30+10,j*30,10,15);
-              if(tiles[i][j].hasdown)
-                c.rect(660+i*30+10,j*30+15,10,15);
-              c.stroke();
             }
           }
         }
@@ -1071,11 +1175,14 @@
           createBlock((room.x+1)*20-1,(room.y)*20+i);
         }
       }
-      function createBlock(x,y){
-        obsx.push(x*TILE_WIDTH);
-        obsy.push(y*TILE_WIDTH);
+      function createBlock(x,y,type){
         collisionobj[x][y]=new Block(x,y);
-        collisionobj[x][y].block_no=obsx.length-1;
+        collisionobj[x][y].block_no=obs.length;
+        if(type==COIN)
+          collisionobj[x][y].setBlocktype(coins_block);
+        else
+          collisionobj[x][y].setBlocktype(obstacle_block);
+        obs.push(collisionobj[x][y]);
       }
       function keyDownListener(code){
         //map key dir matches appropriate keycode with direction
