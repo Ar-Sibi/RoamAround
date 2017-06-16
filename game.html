@@ -43,7 +43,7 @@
       var tiles=[];
       const ROOM=1;
       const CORRIDOR=2;
-      const CORRIDOR_WIDTH=6;
+      const CORRIDOR_WIDTH=4;
       var WIDTH=MAP_HEIGHT/VISIBLE_H;
       var rooms=[];
       var corridors=[];
@@ -127,6 +127,7 @@
         window.onkeyup=function(e){
           keyUpListener(e.keyCode);
         }
+        drawMap();
       }
 
 
@@ -140,6 +141,10 @@
               x=Math.floor(Math.random()*(MAP_WIDTH-TILE_WIDTH));
               y=Math.floor(Math.random()*(MAP_HEIGHT-TILE_HEIGHT));
             }while(doesCollide(x+enemy.x_adjustor,y+enemy.y_adjustor,0)||doesCollide(x-enemy.x_adjustor,y-enemy.y_adjustor,0))
+            i--;
+            if(tiles[Math.floor(x/VISIBLE_W)][Math.floor(y/VISIBLE_W)]==null)
+              continue;
+            i++;
             enemy.x=x;
             enemy.y=y;
             enemy.initialpositionx=x;
@@ -203,15 +208,41 @@
 
         var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
         var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
-        while(collisionobj[x][y]!=null){
-          var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
-          var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
-        }
+        var isroom=true;
+          while(collisionobj[x][y]!=null||isroom){
+            isroom=true;
+            var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
+            var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
+            if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)]!=null){
+              if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)].type==ROOM)
+                isroom=false;
+            }
+          }
         exit=new Block(x,y);
         collisionobj[x][y]=exit;
         collisionobj[initialuserpositionx][initialuserpositiony]=null;
+        console.log(exit.x*30+"    "+exit.y*30);
       }
 
+      function initializeUser(){
+        while(true){
+          while(collisionobj[x][y]!=null){
+            var x=Math.floor(Math.random()*(MAP_WIDTH/TILE_WIDTH));
+            var y=Math.floor(Math.random()*(MAP_HEIGHT/TILE_HEIGHT));
+          }
+          if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)]!=null){
+            if(tiles[Math.floor(x*30/VISIBLE_W)][Math.floor(y*30/VISIBLE_W)].type!=ROOM)
+              continue;
+            else
+              break;
+            }
+            else {
+              continue;
+        }
+        user.x=x*30;
+        user.y=y*30;
+        }
+      }
 
       function draw(){
         c.clearRect(0,0,601,601);
@@ -223,7 +254,7 @@
         if(user.alive==true)
         drawCharacter(c);
         smoothenTransition();
-
+        drawMap();
       }
 
 
@@ -307,25 +338,25 @@
         }
 
         this.moveUp=function(){
-          if((this.y-MOVE)>getBound(UP)  && !doesCollide(this.x+X_ADJUSTOR,this.y-MOVE+Y_ADJUSTOR,0))
+          if((this.y-MOVE)>getBound(UP)  && !doesCollide(this.x+X_ADJUSTOR,this.y-MOVE+Y_ADJUSTOR,0,USER))
             this.y=this.y-MOVE;
           tick[UP]++;
         };
 
         this.moveLeft=function(){
-          if((this.x-MOVE)>getBound(LEFT)  && !doesCollide(this.x-MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0))
+          if((this.x-MOVE)>getBound(LEFT)  && !doesCollide(this.x-MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0,USER))
             this.x=this.x-MOVE;
           tick[LEFT]++;
         };
 
         this.moveDown=function(){
-          if((this.y+MOVE)<getBound(DOWN)  && !doesCollide(this.x+X_ADJUSTOR,this.y+MOVE+Y_ADJUSTOR,0))
+          if((this.y+MOVE)<getBound(DOWN)  && !doesCollide(this.x+X_ADJUSTOR,this.y+MOVE+Y_ADJUSTOR,0,USER))
             this.y=this.y+MOVE;
           tick[DOWN]++;
         };
 
         this.moveRight=function(){
-          if((this.x+MOVE)<getBound(RIGHT)  && !doesCollide(this.x+MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0))
+          if((this.x+MOVE)<getBound(RIGHT)  && !doesCollide(this.x+MOVE+X_ADJUSTOR,this.y+Y_ADJUSTOR,0,USER))
             this.x=this.x+MOVE;
           tick[RIGHT]++;
         };
@@ -339,7 +370,7 @@
             firedBullet.spritesheetsource=user_normal_bullet;
             firedBullet.spritesheetx=user.bulletpicx;
             firedBullet.spritesheety=user.bulletpicy;
-            firedBullet.velocity=3;
+            firedBullet.velocity=4;
             firedBullet.x_adjustor=15;
             firedBullet.y_adjustor=15;
             firedBullet.dmg=2;
@@ -401,13 +432,13 @@
       }
 
 
-      function doesCollide(x,y,z){
+      function doesCollide(x,y,z,hitby){
         var x=Math.floor((x)/30);
         var y=Math.floor((y)/30);
         //Collision With Blocks
         if(collisionobj[x]!=null)
           if(collisionobj[x][y]!=null){
-            if(collisionobj[x][y]==exit&&z==0){
+            if(collisionobj[x][y]==exit&&z==0&&hitby!=null){
               exitHit();
               return;
             }
@@ -433,6 +464,7 @@
 
 
       function exitHit(){
+        createRooms();
         initializeObstacles();
         initializeBackground();
         initializeEnemies();
@@ -521,6 +553,7 @@
         }
 
         for(i=0;i<bullets.length;i++){
+          if(Math.abs(bullets[i].x-user.x)<=330&&Math.abs(bullets[i].y-user.y)<=330)
           c.drawImage(bullets[i].spritesheetsource,bullets[i].spritesheetx,bullets[i].spritesheety,32,32,camera.getPositionfromX(bullets[i].x),camera.getPositionfromY(bullets[i].y),30,30);
           bullets[i].move();
         }
@@ -592,10 +625,10 @@
         this.x=x;
         this.y=y;
         this.hp=10;
-        this.velocity=1;
+        this.velocity=1.2;
         this.x_adjustor=15;
         this.y_adjustor=15;
-        this.patrolrange=100;
+        this.patrolrange=200;
         this.firetick=0;
         this.mode=MODE_PATROL;
         this.direction=Math.floor(Math.random()*4);
@@ -696,7 +729,7 @@
             firedBullet.spritesheetsource=enemy_bullet;
             firedBullet.spritesheetx=this.bulletpicx;
             firedBullet.spritesheety=this.bulletpicy;
-            firedBullet.velocity=3;
+            firedBullet.velocity=4;
             firedBullet.x_adjustor=15;
             firedBullet.y_adjustor=15;
             firedBullet.dmg=2;
@@ -800,9 +833,9 @@
       this.setType=function(){
         if(this.y!=0&&this.y!=WIDTH-1){
           if(this.x!=0)
-          this.hasleft=Math.floor(Math.random()*2)==1?true:false;
+            this.hasleft=Math.floor(Math.random()*2)==1?true:false;
           if(this.x!=WIDTH-1)
-          this.hasright=Math.floor(Math.random()*2)==1?true:false;
+            this.hasright=Math.floor(Math.random()*2)==1?true:false;
         }
         else {
           this.hasleft=true;
@@ -810,19 +843,43 @@
         }
         if(this.x!=0&&this.x!=WIDTH-1){
           if(this.y!=0)
-          this.hasup=Math.floor(Math.random()*2)==1?true:false;
+            this.hasup=Math.floor(Math.random()*2)==1?true:false;
           if(this.y!=WIDTH-1)
-          this.hasdown=Math.floor(Math.random()*2)==1?true:false;
+            this.hasdown=Math.floor(Math.random()*2)==1?true:false;
         }
         else {
-            this.hasup=true;
-            this.hasdown=true;
+          this.hasup=true;
+          this.hasdown=true;
         }
         if(this.hasleft==this.hasright==this.hasdown==this.hasup)
           this.setType();
       }
       }
-
+      function drawMap(){
+        for(i=0;i<WIDTH;i++){
+          for(j=0;j<WIDTH;j++){
+            if(tiles[i][j]!=null){
+              if(tiles[i][j].type==ROOM){
+                c.beginPath();
+                c.strokeStyle="#FF0000"
+                c.rect(660+i*30,j*30,30,30);
+                c.stroke();
+                c.strokeStyle="#000000"
+              }
+              c.beginPath();
+              if(tiles[i][j].hasleft)
+                c.rect(660+i*30,0+j*30+10,15,10);
+              if(tiles[i][j].hasright)
+                c.rect(660+i*30+15,0+j*30+10,15,10);
+              if(tiles[i][j].hasup)
+                c.rect(660+i*30+10,j*30,10,15);
+              if(tiles[i][j].hasdown)
+                c.rect(660+i*30+10,j*30+15,10,15);
+              c.stroke();
+            }
+          }
+        }
+      }
 
       function drawRight(x,y){
         var x_p=x;
@@ -908,6 +965,13 @@
             tiles[x_p][y_p].hasup=true;
       }
       function createRooms(){
+        tiles=[];
+        rooms=[];
+        for(i=0;i<WIDTH;i++){
+          tiles[i]=[];
+          for(j=0;j<WIDTH;j++)
+            tiles[i][j]=null;
+        }
         generateCorners();
         for(i=0;i<rooms_no;i++){
           var x=Math.floor(Math.random()*WIDTH);
@@ -987,23 +1051,23 @@
 
       function drawRoom(room){
         for(var i=0;i<VISIBLE_H/TILE_WIDTH;i++){
-          if(room.hasup==true&&i==7)
-            i+=6;
+          if(room.hasup==true&&i==9-CORRIDOR_WIDTH/2+1)
+            i+=CORRIDOR_WIDTH;
           createBlock(room.x*20+i,room.y*20);
           }
         for(var i=0;i<VISIBLE_H/TILE_WIDTH;i++){
-          if(room.hasdown==true&&i==7)
-            i+=6;
+          if(room.hasdown==true&&i==9-CORRIDOR_WIDTH/2+1)
+            i+=CORRIDOR_WIDTH;
           createBlock(room.x*20+i,(room.y+1)*20-1);
         }
         for(var i=0;i<VISIBLE_H/TILE_WIDTH;i++){
-          if(room.hasleft==true&&i==7)
-            i+=6;
+          if(room.hasleft==true&&i==9-CORRIDOR_WIDTH/2+1)
+            i+=CORRIDOR_WIDTH;
           createBlock(room.x*20,room.y*20+i);
         }
         for(var i=0;i<VISIBLE_H/TILE_WIDTH;i++){
-          if(room.hasright==true&&i==7)
-            i+=6;
+          if(room.hasright==true&&i==9-CORRIDOR_WIDTH/2+1)
+            i+=CORRIDOR_WIDTH;
           createBlock((room.x+1)*20-1,(room.y)*20+i);
         }
       }
