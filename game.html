@@ -20,6 +20,11 @@
       const S=83;
       const D=68;
       const Q=81;
+      const I=73;
+      const J=74;
+      const K=75;
+      const L=76;
+      const P=80;
       const F=70;
       const MOVE=3;
       const X_ADJUSTOR=11;
@@ -39,6 +44,7 @@
       const MODE_ENGAGE=2;
       const TILE_WIDTH=30;
       const TILE_HEIGHT=30;
+      var paused=false;
       var ATTACK_RANGE=30;
       var tiles=[];
       const ROOM=1;
@@ -81,6 +87,10 @@
       var user_normal_bullet=new Image();
       var enemy_bullet=new Image();
       var chest_image=new Image();
+      var coin_music;
+      var background_audio;
+      var door_audio;
+      var user_audio;
       var map_type;
       var cuts=[];
       initialize();
@@ -111,6 +121,12 @@
         cuts[2]=new Image();
         cuts[3]=new Image();
         cuts[4]=new Image();
+        coin_music=new Audio("coin_music.wav");
+        background_audio=new Audio("background.wav");
+        door_audio=new Audio("door_2.wav");
+        user_audio=new Audio("user_hit.wav");
+        background_audio.loop=true;
+        background_audio.play();
         //Start Drawing
         render=setInterval(draw,REFRESH_RATE);
         //Get images from source
@@ -303,6 +319,7 @@
         c.fillStyle="#00FF00"
         c.font="30px Verdana";
         c.fillText(user.score,500,30);
+        c.fillText("WASD to move IJKL to fire Q for melee",0,720);
       }
 
 
@@ -365,12 +382,19 @@
         user.moveDown();
         if(keymap[D]==true)
         user.moveRight();
-        if(keymap[F]==true)
-        user.fire();
+        if(keymap[I]==true)
+          user.fire(UP);
+        else if(keymap[J]==true)
+          user.fire(LEFT);
+        else if(keymap[K]==true)
+          user.fire(DOWN);
+        else if(keymap[L]==true)
+          user.fire(RIGHT);
+
         else if(tick[FIRE]!=0)
           tick[FIRE]=(tick[FIRE]+1)%30;
         if(keymap[Q]==true)
-        user.attack();
+          user.attack();
         else if(tick[ATTACK]!=0)
           tick[ATTACK]=(tick[ATTACK]+1)%10;
         if(tick[ATTACK]!=0)
@@ -407,6 +431,7 @@
         this.score=0;
         this.bulletsrc=user_normal_bullet;
         this.hit=function(dmg){
+          user_audio.play();
           this.hp-=dmg;
           console.log(this.hp);
           if(this.hp<=0)
@@ -437,12 +462,12 @@
           tick[RIGHT]++;
         };
 
-        this.fire=function(){
+        this.fire=function(direction){
           if(tick[FIRE]==0){
             var firedBullet=new Bullet();
             firedBullet.x=user.x;
             firedBullet.y=user.y;
-            firedBullet.direction=user.direction;
+            firedBullet.direction=direction;
             firedBullet.spritesheetsource=user_normal_bullet;
             firedBullet.spritesheetx=user.bulletpicx;
             firedBullet.spritesheety=user.bulletpicy;
@@ -459,20 +484,29 @@
 
         this.attack=function(){
           if(tick[ATTACK]==0){
+            doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y,1.5);
             switch(user.direction){
-              case UP:  doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y-ATTACK_RANGE,1);
+              case UP:  doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y-ATTACK_RANGE,1.5);
+                doesCollide(this.x+X_ADJUSTOR,Y_ADJUSTOR+this.y-ATTACK_RANGE,1.5);
+                doesCollide(this.x+X_ADJUSTOR-30,Y_ADJUSTOR+this.y-ATTACK_RANGE,1.5);
                 sliced_x=this.x;
                 sliced_y=this.y-30;
                 break;
-              case LEFT:   doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y,1);
+              case LEFT:   doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y,1.5);
+                doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y-30,1.5);
+                doesCollide(X_ADJUSTOR+this.x-ATTACK_RANGE,Y_ADJUSTOR+this.y+30,1.5);
                 sliced_x=this.x-30;
                 sliced_y=this.y;
                 break;
-              case DOWN:   doesCollide(X_ADJUSTOR+this.x,Y_ADJUSTOR+this.y+ATTACK_RANGE,1);
+              case DOWN:   doesCollide(X_ADJUSTOR+this.x,Y_ADJUSTOR+this.y+ATTACK_RANGE,1.5);
+                doesCollide(X_ADJUSTOR+this.x-30,Y_ADJUSTOR+this.y+ATTACK_RANGE,1.5);
+                doesCollide(X_ADJUSTOR+this.x+30,Y_ADJUSTOR+this.y+ATTACK_RANGE,1.5);
                 sliced_x=this.x;
                 sliced_y=this.y+30;
                 break;
-              case RIGHT:  doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y,1);
+              case RIGHT:  doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y,1.5);
+                doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y-30,1.5);
+                doesCollide(X_ADJUSTOR+this.x+ATTACK_RANGE,Y_ADJUSTOR+this.y+30,1.5);
                 sliced_x=this.x+30;
                 sliced_y=this.y;
                 break;
@@ -496,6 +530,7 @@
         this.x=x;
         this.y=y;
         this.block_no;
+        this.type;
         this.spritesheetsource;
         this.spritesheetx;
         this.spritesheety;
@@ -512,6 +547,7 @@
           this.spritesheety=blocktype.spritesheety;
           this.hp=blocktype.hp;
           this.score=blocktype.score;
+          this.type=blocktype;
         }
       }
 
@@ -532,6 +568,10 @@
                 obs[collisionobj[x][y].block_no].x=OUT_OF_SIGHT/30;
                 user.score+=collisionobj[x][y].score;
                 console.log(user.score);
+                if(collisionobj[x][y].type==coins_block)
+                  coin_music.play();
+                if(collisionobj[x][y].type==chest_block)
+                  user_audio.play();
                 collisionobj[x][y]=null;
 
               }
@@ -551,6 +591,8 @@
 
       function exitHit(){
         if(map_types.length!=0){
+          door_audio.play();
+          user.score+=500;
           initializeMapType();
           createRooms();
           initializeObstacles();
@@ -560,7 +602,6 @@
         else
           clearInterval(render);
       }
-
 
 
       function getBound(dir){
@@ -1186,13 +1227,33 @@
       }
       function keyDownListener(code){
         //map key dir matches appropriate keycode with direction
+        if(code==P){
+          pause();
+        }
         if((keymap[code]==false||keymap[code]==null)&&mapkey_dir[code]<4){
           direction_storer.push(mapkey_dir[code]);
           user.direction=mapkey_dir[code];
         }
         keymap[code]=true;
       }
+      function play(){
+        if(paused){
+        render=setInterval(draw,REFRESH_RATE);
+        background_audio.play();
+        paused=false;
+      }
+      }
 
+      function pause(){
+        if(paused==false){
+          clearInterval(render);
+          background_audio.pause();
+          paused=true;
+        }
+        else {
+        play();
+        }
+      }
 
       function keyUpListener(code){
         var i;
