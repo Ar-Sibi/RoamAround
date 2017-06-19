@@ -49,6 +49,7 @@
     rooms.push(cornerroom);
     tiles[WIDTH-1][WIDTH-1]=cornerroom;
   }
+
   generateCorners();
   for(i=0;i<rooms_no;i++){
     var x=Math.floor(Math.random()*WIDTH);
@@ -65,7 +66,7 @@
     i--;
     }
   }
-for(i=0;i<rooms.length;i++){
+  for(i=0;i<rooms.length;i++){
     if(rooms[i].hasright)
       drawRight(rooms[i].x+1,rooms[i].y);
     if(rooms[i].hasup)
@@ -74,151 +75,150 @@ for(i=0;i<rooms.length;i++){
       drawLeft(rooms[i].x-1,rooms[i].y);
     if(rooms[i].hasdown)
       drawDown(rooms[i].x,rooms[i].y+1);
-}
-function drawRight(x,y){
-  var x_p=x;
-  var y_p=y;
-  if(x_p<WIDTH)
-  while(tiles[x_p][y_p]==null){
-    var corridor=new Room();
-    corridor.type=CORRIDOR;
-    corridor.x=x_p;
-    corridor.y=y_p;
-    corridor.hasleft=true;
-    corridor.hasright=true;
-    tiles[x_p][y_p]=corridor;
-    corridors.push(corridor);
-    x_p++;
-    if(x_p>=WIDTH)
-      break;
   }
-  if(x_p<WIDTH)
+  function drawRight(x,y){
+    var x_p=x;
+    var y_p=y;
+    if(x_p<WIDTH)
+      while(tiles[x_p][y_p]==null){
+        var corridor=new Room();
+        corridor.type=CORRIDOR;
+        corridor.x=x_p;
+        corridor.y=y_p;
+        corridor.hasleft=true;
+        corridor.hasright=true;
+        tiles[x_p][y_p]=corridor;
+        corridors.push(corridor);
+        x_p++;
+        if(x_p>=WIDTH)
+          break;
+      }
+    if(x_p<WIDTH)
       tiles[x_p][y_p].hasleft=true;
-}
-function drawLeft(x,y){
-  var x_p=x;
-  var y_p=y;
-  if(x>=0)
-  while(tiles[x_p][y_p]==null){
-    var corridor=new Room();
-    corridor.type=CORRIDOR;
-    corridor.x=x_p;
-    corridor.y=y_p;
-    if(x_p>0)
-    corridor.hasleft=true;
-    corridor.hasright=true;
-    tiles[x_p][y_p]=corridor;
-    corridors.push(corridor);
-    x_p--;
-    if(x_p<0)
-    break;
   }
-  if(x_p>=0)
+  function drawLeft(x,y){
+    var x_p=x;
+    var y_p=y;
+    if(x>=0)
+      while(tiles[x_p][y_p]==null){
+        var corridor=new Room();
+        corridor.type=CORRIDOR;
+        corridor.x=x_p;
+        corridor.y=y_p;
+        if(x_p>0)
+          corridor.hasleft=true;
+        corridor.hasright=true;
+        tiles[x_p][y_p]=corridor;
+        corridors.push(corridor);
+        x_p--;
+        if(x_p<0)
+          break;
+      }
+    if(x_p>=0)
       tiles[x_p][y_p].hasright=true;
-}
-function drawUp(x,y){
-  var x_p=x;
-  var y_p=y;
-  if(y_p>=0)
-  while(tiles[x_p][y_p]==null){
-    var corridor=new Room();
-    corridor.type=CORRIDOR;
-    corridor.x=x_p;
-    corridor.y=y_p;
-    if(y_p>0)
-    corridor.hasup=true;
-    corridor.hasdown=true;
-    tiles[x_p][y_p]=corridor;
-    corridors.push(corridor);
-    y_p--;
-    if(y_p<0)
-      break;
   }
-  if(y_p>=0)
+  function drawUp(x,y){
+    var x_p=x;
+    var y_p=y;
+    if(y_p>=0)
+      while(tiles[x_p][y_p]==null){
+        var corridor=new Room();
+        corridor.type=CORRIDOR;
+        corridor.x=x_p;
+        corridor.y=y_p;
+        if(y_p>0)
+          corridor.hasup=true;
+        corridor.hasdown=true;
+        tiles[x_p][y_p]=corridor;
+        corridors.push(corridor);
+        y_p--;
+        if(y_p<0)
+          break;
+      }
+    if(y_p>=0)
       tiles[x_p][y_p].hasdown=true;
-}
-function drawDown(x,y){
-  var x_p=x;
-  var y_p=y;
-  if(y_p<WIDTH)
-  while(tiles[x_p][y_p]==null){
-    var corridor=new Room();
-    corridor.type=CORRIDOR;
-    corridor.x=x_p;
-    corridor.y=y_p;
-    corridor.hasup=true;
-    if(y_p<WIDTH-1)
-    corridor.hasdown=true;
-    tiles[x_p][y_p]=corridor;
-    corridors.push(corridor);
-    y_p++;
-    if(y_p>=WIDTH)
-      break;
   }
-  if(y_p<WIDTH)
+  function drawDown(x,y){
+    var x_p=x;
+    var y_p=y;
+    if(y_p<WIDTH)
+      while(tiles[x_p][y_p]==null){
+        var corridor=new Room();
+        corridor.type=CORRIDOR;
+        corridor.x=x_p;
+        corridor.y=y_p;
+        corridor.hasup=true;
+        if(y_p<WIDTH-1)
+          corridor.hasdown=true;
+          tiles[x_p][y_p]=corridor;
+          corridors.push(corridor);
+          y_p++;
+          if(y_p>=WIDTH)
+            break;
+      }
+    if(y_p<WIDTH)
       tiles[x_p][y_p].hasup=true;
-}
-for(i=0;i<WIDTH;i++){
+  }
+  for(i=0;i<WIDTH;i++){
     for(j=0;j<WIDTH;j++){
-      if(tiles[i][j]==null);
-      else {
+      if(tiles[i][j]!=null){
         if(tiles[i][j].type==ROOM){
           c.beginPath();
+          c.strokeStyle="#FF0000"
           c.rect(i*30,j*30,30,30);
           c.stroke();
+          c.strokeStyle="#000000"
         }
-         {
-          c.beginPath();
-          if(tiles[i][j].hasleft)
-            c.rect(i*30,j*30+10,15,10);
-          if(tiles[i][j].hasright)
-            c.rect(i*30+15,j*30+10,15,10);
-          if(tiles[i][j].hasup)
-            c.rect(i*30+10,j*30,10,15);
-          if(tiles[i][j].hasdown)
-            c.rect(i*30+10,j*30+15,10,15);
-          c.stroke();
-        }
+        c.beginPath();
+        if(tiles[i][j].hasleft)
+          c.rect(i*30,j*30+10,15,10);
+        if(tiles[i][j].hasright)
+          c.rect(i*30+15,j*30+10,15,10);
+        if(tiles[i][j].hasup)
+          c.rect(i*30+10,j*30,10,15);
+        if(tiles[i][j].hasdown)
+          c.rect(i*30+10,j*30+15,10,15);
+        c.stroke();
       }
     }
-}
-function Room(){
-this.x;
-this.y;
-this.type=ROOM;
-this.hasleft=false;
-this.hasright=false;
-this.hasdown=false;
-this.hasup=false;
-this.isupconnected=false;
-this.isdownconnected=false;
-this.isleftconnected=false;
-this.isrightconnected=false;
-this.setType=function(){
-  if(this.y!=0&&this.y!=WIDTH-1){
-    if(this.x!=0)
-    this.hasleft=Math.floor(Math.random()*2)==1?true:false;
-    if(this.x!=WIDTH-1)
-    this.hasright=Math.floor(Math.random()*2)==1?true:false;
   }
-  else {
-    this.hasleft=true;
-    this.hasright=true;
+  function Room(){
+    this.x;
+    this.y;
+    this.type=ROOM;
+    this.hasleft=false;
+    this.hasright=false;
+    this.hasdown=false;
+    this.hasup=false;
+    this.isupconnected=false;
+    this.isdownconnected=false;
+    this.isleftconnected=false;
+    this.isrightconnected=false;
+    this.setType=function(){
+      if(this.y!=0&&this.y!=WIDTH-1){
+        if(this.x!=0)
+          this.hasleft=Math.floor(Math.random()*2)==1?true:false;
+        if(this.x!=WIDTH-1)
+          this.hasright=Math.floor(Math.random()*2)==1?true:false;
+      }
+      else {
+        this.hasleft=true;
+        this.hasright=true;
+      }
+      if(this.x!=0&&this.x!=WIDTH-1){
+        if(this.y!=0)
+          this.hasup=Math.floor(Math.random()*2)==1?true:false;
+        if(this.y!=WIDTH-1)
+          this.hasdown=Math.floor(Math.random()*2)==1?true:false;
+      }
+      else {
+        this.hasup=true;
+        this.hasdown=true;
+      }
+      if(this.hasleft==this.hasright==this.hasdown==this.hasup)
+        this.setType();
+    }
   }
-  if(this.x!=0&&this.x!=WIDTH-1){
-    if(this.y!=0)
-    this.hasup=Math.floor(Math.random()*2)==1?true:false;
-    if(this.y!=WIDTH-1)
-    this.hasdown=Math.floor(Math.random()*2)==1?true:false;
-  }
-  else {
-      this.hasup=true;
-      this.hasdown=true;
-  }
-  if(this.hasleft==this.hasright==this.hasdown==this.hasup)
-    this.setType();
-}
-}
 </script>
 </body>
 </html>

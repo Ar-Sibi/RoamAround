@@ -1,0 +1,24 @@
+function Block(x,y){
+  this.x=x;
+  this.y=y;
+  this.block_no;
+  this.type;
+  this.spritesheetsource;
+  this.spritesheetx;
+  this.spritesheety;
+  this.score;
+  this.hp=50;
+  this.hit=function(dmg){
+      this.hp-=dmg;
+      if(this.hp<=0)
+      this.hp=0;
+  }
+  this.setBlocktype=function(blocktype){
+    this.spritesheetsource=blocktype.spritesheetsource;
+    this.spritesheetx=blocktype.spritesheetx;
+    this.spritesheety=blocktype.spritesheety;
+    this.hp=blocktype.hp;
+    this.score=blocktype.score;
+    this.type=blocktype;
+  }
+}
