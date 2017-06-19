@@ -4,8 +4,8 @@ function Bullet(){
   this.y;
   this.direction;
   this.dmg=2;
-  this.x_adjustor=0;
-  this.y_adjustor=0;
+  this.x_adjustor=15;
+  this.y_adjustor=15;
   this.velocity;
   this.maxfiretick=30;
   this.spritesheet=resourceSheet;

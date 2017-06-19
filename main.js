@@ -8,7 +8,7 @@ const W=87;
 const A=65;
 const S=83;
 const D=68;
-const Q=81;
+const Q=85;
 const I=73;
 const J=74;
 const K=75;
@@ -139,7 +139,7 @@ function initialize(){
   //Start Drawing
   render=setInterval(draw,REFRESH_RATE);
   //Get images from source
-  obstacle_block=new BlockType(backgroundImg,2,3,1,5000);
+  obstacle_block=new BlockType(backgroundImg,2,3,1,2550);
   chest_block=new BlockType(chest_image,0,0,50,1);
   coins_block=new BlockType(gold_pile_img,0,0,50,1);
   potion_block=new BlockType(resourceSheet,34,24,0,1);
@@ -179,9 +179,9 @@ function drawMenu(){
   c.fillRect(0,0,600,600);
   c.fillStyle="#00FF00"
   c.font="30px Verdana";
-  c.fillText("WASD to move IJKL to fire Q for melee",0,60);
-  c.fillText("P to pause ",0,120);
-  c.fillText("Press any key to begin",0,180);
+  c.fillText("WASD to move IJKL to fire U for melee",0,60);
+  c.fillText("P to pause ",100,320);
+  c.fillText("Press any key to begin",100,580);
   window.onkeydown=function(){
 
     initialize();
@@ -294,7 +294,6 @@ function initializeObstacles(){
   }
   user.x=x*30;
   user.y=y*30;
-  console.log(exit.x*30+"    "+exit.y*30);
 }
 
 function initializeUser(){
@@ -356,7 +355,7 @@ function drawHealthBar(){
   c.fillRect(30,VISIBLE_H+30,user.hp*10,20);
   c.fillStyle="#0000FF";
   c.fillRect(630,0,10,timer/2);
-  timer-=1/9;
+  timer-=1/10;
   //c.restore();
 }
 
@@ -380,7 +379,6 @@ function drawObstacles(c){
       c.drawImage(obs[i].spritesheetsource,32*obs[i].spritesheetx,32*obs[i].spritesheety,32,32,camera.getPositionfromX(obs[i].x*30),camera.getPositionfromY(obs[i].y*30),TILE_WIDTH,TILE_HEIGHT);
   }
     if(Math.abs(user.x-exit.x*30)<=330&&Math.abs(user.y-exit.y*30)<=330)
-      c.globalAlpha=1;
       c.drawImage(resourceSheet,32*23,32*11,32,32,camera.getPositionfromX(exit.x*TILE_WIDTH),camera.getPositionfromY(exit.y*TILE_HEIGHT),TILE_WIDTH,TILE_HEIGHT);
 }
 
@@ -438,6 +436,9 @@ function smoothenTransition(){
 function doesCollide(x,y,z,hitby){
   var x=Math.floor((x)/30);
   var y=Math.floor((y)/30);
+  if(z!=0){
+    console.log(x+"  "+y);
+    }
   //Collision With Blocks
   if(collisionobj[x]!=null)
     if(collisionobj[x][y]!=null){
@@ -878,7 +879,7 @@ function drawGameOver(){
   c.fillText("Press R to restart",170,310);
   c.fillText("Your score is "+user.score,160,420);
   window.onkeydown=function(e){
-    if(e.keyCode==Q+1){
+    if(e.keyCode==82){
       clearInterval(render);
       initialize();
     }
