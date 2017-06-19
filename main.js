@@ -139,7 +139,7 @@ function initialize(){
   //Start Drawing
   render=setInterval(draw,REFRESH_RATE);
   //Get images from source
-  obstacle_block=new BlockType(backgroundImg,2,3,1,50);
+  obstacle_block=new BlockType(backgroundImg,2,3,1,5000);
   chest_block=new BlockType(chest_image,0,0,50,1);
   coins_block=new BlockType(gold_pile_img,0,0,50,1);
   potion_block=new BlockType(resourceSheet,34,24,0,1);
